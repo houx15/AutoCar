@@ -52,7 +52,7 @@ def ImgPacket(lastPack,seqNum,bytesSent,payLoad):#将图片打包
     #except Exception as ex:
     #    return None
     
-def ImgSend(socket,img,host,port):
+def ImgSend(socket,img,addr):
     imgByte=ImgByte(img)
     imgChunk=ImgChunk(imgByte)
     count=0
@@ -62,11 +62,11 @@ def ImgSend(socket,img,host,port):
 
         if count==len(imgChunk)-1:
             lastPack=1
-        socket.sendto(ImgPacket(lastPack,count,byteArray),(host,port))
+        socket.sendto(ImgPacket(lastPack,count,byteArray),addr)
         count=count+1
                     #buf+="ACK"
                     #self.client_socket.send(buf)
-                '''
+'''
                 # Check buffer
                 recv_buffer = self.client_socket.recv(1024)
                 delim = recv_buffer.strip()[-3:]
@@ -79,13 +79,13 @@ def ImgSend(socket,img,host,port):
 def dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4):
     packet=struct.Struct("IIII?IIII")
     return packet.pack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4)
-def dataSend(sock,dataPack,host,port):
+def dataSend(sock,dataPack,addr):
     #写一个用于IMU,距离信息，小车速度
-    sock.sendto(data,(host,port))
+    sock.sendto(data,addr)
 def dataRec(sock,fmt='IIIIIIIII'):
     # for recieving data from pc
-    data=sock.recv(1024)
-    return struct.unpack(fmt,data)
+    data,addr=sock.recvfrom(1024)
+    return struct.unpack(fmt,data),addr
 
 
 '''

@@ -8,10 +8,9 @@ __status__ = "Development"
 import threading
 import serial
 import time
-import socket
+from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_BROADCAST
 import os
 import sys
-import PI_IMU as IMU
 import PI_UltraDist as Ultra
 import cv2
 import numpy as np
@@ -21,7 +20,9 @@ import RPi.GPIO as GPIO
 
 PIerror="errors:\n"
 
+address=('127.0.0.1',5924)
 socket_udp=socket(AF_INET, SOCK_DGRAM)
+socket_udp.bind(address)
 uart=PiUART()
 uart.conn()
 
@@ -44,7 +45,7 @@ iSpeed3=0
 iSpeed4=0
 iLiftangle=0
 iOpenangle=0
-
+addr=None
 
 def initGPIO():
     GPIO.setwarnings(False)
@@ -65,6 +66,7 @@ def getImage(camera):
 
 def setPara(recData):
     if len(recData)==9:
+        print ("recieved")
         bStart=recData[0]
         bPause=recData[1]
         iMode=recData[2]
@@ -78,15 +80,17 @@ def setPara(recData):
     else:
         return 0
 
-def imgThread(camera):
-    img=getImage(camera)
-    client.ImgSend(socket_udp,img,'127.0.0.1',5824)
+def imgThread(camera,addr):
+    while True:
+        img=getImage(camera)
+        client.ImgSend(socket_udp,img,addr)
 
 def dataThread():
     initGPIO()
     GPIO.setup(21,GPIO.OUT)
     GPIO.output(21, False)
-    recData=client.dataRec(socket_udp)
+    recData,addr=client.dataRec(socket_udp)
+    print (recData)
     setPara(recData)
     if bPause==1:
         GPIO.output(21, True)
@@ -101,38 +105,30 @@ def dataThread():
         motion=str(iSpeed1)+str(iSpeed2)+str(iSpeed3)+str(iSpeed4)+str(iLiftangle)+str(iOpenangle)
         uart.send(motion)
         speedInfo=uart.recv()
-
+    #    speedInfo="12,12,12,12,12"
 
         #速度解码
-
-        iCarTheta=IMU.iGetTheta()
-        iDistance1=Ultra.measure(35,33)
-        iDistance2=ultra.measure(15,13)
-        iDistance3=ultra.measure(31,29)
+        decodeData=speedInfo.split(',',4)
+        if len(decodeData)>=5:
+            print(decodeData)
+            iRealWheel1=int(decodeData[0])
+            iRealWheel2=int(decodeData[1])
+            iRealWheel3=int(decodeData[2])
+            iRealWheel4=int(decodeData[3])
+            iCarTheta=int(decodeData[4])
         #然后将数据按照协议打包
         
         dataToSend=client.dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4)
-        client.dataSend(socket_udp,dataToSend,'127.0.0.1',5824)
+        client.dataSend(socket_udp,dataToSend,addr)
+        bReceive=0
 
 threads=[]
-t1=threading.Thread(target=imgThread,args=(camera))
+t1=threading.Thread(target=imgThread,args=(camera,addr))
 threads.append(t1)
 t2=threading.Thread(target=dataThread,args=())
+threads.append(t2)
 
 if __name__=='__main__':
-    while True:
-        #如果掉线，自动连接到wifi
-        if '192' not in os.popen('ifconfig | grep 192').read():
-            PIerror=PIerror+'wifi is down, restart...\n'
-            os.system('sudo /etc/init.d/networking restart')
-    while True:
-        for t in threads:
-            t.setDaemon(True)
-            t.start()
-    
-    #socket_udp.stop()
-    #uart.stop()
-
-        #传输给Arduino
-        #接收数据iWheelW1-4 四个小轮的转速，和两个舵机的转速
-        #后面将数据UART发送给arduino，再把arduino的发送回来
+    for t in threads:
+        t.setDaemon()
+        t.start()
