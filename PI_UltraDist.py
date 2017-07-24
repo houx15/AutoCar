@@ -3,11 +3,6 @@
 import time
 import RPi.GPIO as GPIO
 
-def initGPIO():
-    GPIO.setwarnings(False)
-    # referring to the pins by GPIO numbers
-    GPIO.setmode(GPIO.BCM)
-
 def measure(GPIO_TRIGGER,GPIO_ECHO):
     GPIO.output(GPIO_TRIGGER, False)
     GPIO.setup(GPIO_TRIGGER,GPIO.OUT)

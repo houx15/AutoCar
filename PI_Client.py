@@ -16,39 +16,39 @@ def __init__(self, host, port):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #self.client_socket.connect((self.host, self.port))
 '''
-def ImgByte(img):
+def ImgByte(img):#此处将图片通过opencv内置函数转化成为byte格式
     #for video and images
-    recv_buffer = ""
-    image_processed = 1
+    recv_buffer = ""#缓冲，可以不要
+    image_processed = 1#记录图片是不是已经被处理了
 
     while(1):
-        if img != None:
+        if img != None:#如果有图片
             # Image has finished processing
-            if image_processed == 1:
-                image_processed = 0
+            if image_processed == 1:#如果图片还没有被处理
+                image_processed = 0#标志图片已经被处理
 
-                strImg = cv2.imencode( '.jpg', img )[1].tostring()
+                strImg = cv2.imencode( '.jpg', img )[1].tostring()#将图片编码为byte格式
                 return strImg
 
-def ImgChunk(strImg): 
+def ImgChunk(strImg): #将图片按照一定字节组块
     #为了后面分包做准备
-    byteString=[]
-    count=0
-    mystr=str()
-    for imgByte in strImg:
-        mystr=mystr+str(imgByte)
-        count=count+1
-        if count==457:
-            byteString.append((mystr,count))
-            mystr=str()
-            count=0
-    byteString.append((mystr.ljust(456,'0'),count))
+    byteString=[]#构建一个list
+    count=0#计数器，记录读取 的字节数
+    mystr=str()#构建一个字符串
+    for imgByte in strImg:#逐个读取  strImg中的字节
+        mystr=mystr+str(imgByte)#将读取到的加入到myStr中
+        count=count+1#每读取一个，计数器加1
+        if count==1024:#当计数到457
+            byteString.append((mystr,count))#在byteString这个列表中加一个（内容，字节数）的数据
+            mystr=str()#将mystr清空
+            count=0#计数器清零
+    byteString.append((mystr.ljust(1023,'0'),count))#将byteString填充到457个字节（有可能图片没有那么多个字节的，所以使用0填充）
     return byteString
 
-def ImgPacket(lastPack,seqNum,bytesSent,payLoad):
-    packet=struct.Struct("> B l I H 457s")
+def ImgPacket(lastPack,seqNum,bytesSent,payLoad):#将图片打包
+    packet=struct.Struct("< I I 1024s")#定义这个结构体的名字，没啥用，用来看
     #try:
-    return packet.pack(lastPack,binascii.crc32(payLoad),seqNum,bytesSent,payLoad)
+    return packet.pack(lastPack,seqNum,bytesSent)#将传入的几个数据打包（数据合成）然后上传
     #except Exception as ex:
     #    return None
     
@@ -62,7 +62,7 @@ def ImgSend(socket,img,host,port):
 
         if count==len(imgChunk)-1:
             lastPack=1
-        socket.sendto(ImgPacket(lastPack,count,size,byteArray),(host,port))
+        socket.sendto(ImgPacket(lastPack,count,byteArray),(host,port))
         count=count+1
                     #buf+="ACK"
                     #self.client_socket.send(buf)
@@ -76,13 +76,18 @@ def ImgSend(socket,img,host,port):
                     recv_buffer = ""
                     return response
 '''                
-def dataSend(sock,data,host,port):
-        #写一个用于IMU,距离信息，小车速度
-        sock.sendto(data,(host,port))
-def dataRec(sock,bufferSize):
-        # for recieving data from pc
-        data=sock.recv(bufferSize)
-        return data
+def dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4):
+    packet=struct.Struct("IIII?IIII")
+    return packet.pack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4)
+def dataSend(sock,dataPack,host,port):
+    #写一个用于IMU,距离信息，小车速度
+    sock.sendto(data,(host,port))
+def dataRec(sock,fmt='IIIIIIIII'):
+    # for recieving data from pc
+    data=sock.recv(1024)
+    return struct.unpack(fmt,data)
+
+
 '''
     # This thread runs and checks for flags
     def flag_thread(self):
