@@ -78,12 +78,9 @@ def setPara(recData):
     else:
         return 0
 
-def imgThread(camera,addr):
-    while True:
-        img=getImage(camera)
-        client.sendImg(img,socket_udp,addr)
 
-def dataThread():
+
+if __name__=='__main__':
     initGPIO()
     GPIO.setup(21,GPIO.OUT)
     GPIO.output(21, False)
@@ -99,7 +96,8 @@ def dataThread():
         else:
             #巡线壁障模式
             camera=1
-        
+        img=getImage(camera)
+        client.sendImg(img,socket_udp,addr)
         motion=str(iSpeed1)+str(iSpeed2)+str(iSpeed3)+str(iSpeed4)+str(iLiftangle)+str(iOpenangle)
         uart.send(motion)
         speedInfo=uart.recv()
@@ -119,14 +117,3 @@ def dataThread():
         dataToSend=client.dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4)
         client.dataSend(socket_udp,dataToSend,addr)
         bReceive=0
-
-threads=[]
-t1=threading.Thread(target=imgThread,args=(camera,addr))
-threads.append(t1)
-t2=threading.Thread(target=dataThread,args=())
-threads.append(t2)
-
-if __name__=='__main__':
-    for t in threads:
-        t.setDaemon()
-        t.start()
