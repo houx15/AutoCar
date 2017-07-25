@@ -63,13 +63,13 @@ def sendImg(image,sock,addr):
                     recv_buffer = ""
                     return response
 '''                
-def dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4):
-    packet=struct.Struct("IIII?IIII")
-    return packet.pack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceive,iRealWheel1,iRealWheel2,iRealWheel3,iRealWheel4)
+def dataPack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceiveStart,bReceiveMotion):
+    packet=struct.Struct("IIII??")
+    return packet.pack(iDistance1,iDistance2,iDistance3,iCarTheta,bReceiveStart,bReceiveMotion)
 def dataSend(sock,dataPack,addr):
     #写一个用于IMU,距离信息，小车速度
     sock.sendto(data,addr)
-def dataRec(sock,fmt='IIIIIIIII'):
+def dataRec(sock,fmt):
     # for recieving data from pc
     data,addr=sock.recvfrom(1024)
     return struct.unpack(fmt,data),addr
