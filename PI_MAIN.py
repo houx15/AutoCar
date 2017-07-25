@@ -55,8 +55,6 @@ def initGPIO():
 def getImage(camera):
     cap=cv2.VideoCapture(camera)#后置摄像头编号
     #降低分辨率
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
     ret,frame=cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     return gray
@@ -83,7 +81,7 @@ def setPara(recData):
 def imgThread(camera,addr):
     while True:
         img=getImage(camera)
-        client.ImgSend(socket_udp,img,addr)
+        client.sendImg(img,socket_udp,addr)
 
 def dataThread():
     initGPIO()
